@@ -36,14 +36,14 @@ type MetricSender interface {
 
 	// new chanining functions
 	Value(name string, value float64, unit string) metric_sender.ValueChainer
-	ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64) metric_sender.ContainerMetricChainer
+	ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64, cpuWeighted float64) metric_sender.ContainerMetricChainer
 	Counter(name string) metric_sender.CounterChainer
 
 	// legacy functions
 	SendValue(name string, value float64, unit string) error
 	IncrementCounter(name string) error
 	AddToCounter(name string, delta uint64) error
-	SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64) error
+	SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64, cpuPercentageWeighted float64) error
 }
 
 //go:generate hel --type MetricBatcher --output mock_metric_batcher_test.go
@@ -126,12 +126,12 @@ func BatchAddCounter(name string, delta uint64) {
 // The container is identified by the applicationId and the instanceIndex. The resource
 // metrics are CPU percentage, memory and disk usage in bytes. Returns an error if one occurs
 // when sending the metric.
-func SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64) error {
+func SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64, cpuPercentageWeighted float64) error {
 	if metricSender == nil {
 		return nil
 	}
 
-	return metricSender.SendContainerMetric(applicationId, instanceIndex, cpuPercentage, memoryBytes, diskBytes)
+	return metricSender.SendContainerMetric(applicationId, instanceIndex, cpuPercentage, memoryBytes, diskBytes, cpuPercentageWeighted)
 }
 
 // Value creates a value metric that can be manipulated via cascading calls
@@ -145,11 +145,11 @@ func Value(name string, value float64, unit string) metric_sender.ValueChainer {
 
 // ContainerMetric creates a container metric that can be manipulated via
 // cascading calls and then sent.
-func ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64) metric_sender.ContainerMetricChainer {
+func ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64, cpuWeighted float64) metric_sender.ContainerMetricChainer {
 	if metricSender == nil {
 		return nil
 	}
-	return metricSender.ContainerMetric(appID, instance, cpu, mem, disk)
+	return metricSender.ContainerMetric(appID, instance, cpu, mem, disk, cpuWeighted)
 }
 
 // Counter creates a counter event that can be manipulated via cascading calls

@@ -76,8 +76,8 @@ func (ms *MetricSender) AddToCounter(name string, delta uint64) error {
 // The container is identified by the applicationId and the instanceIndex. The resource
 // metrics are CPU percentage, memory and disk usage in bytes. Returns an error if one occurs
 // when sending the metric.
-func (ms *MetricSender) SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64) error {
-	return ms.eventEmitter.Emit(&events.ContainerMetric{ApplicationId: &applicationId, InstanceIndex: &instanceIndex, CpuPercentage: &cpuPercentage, MemoryBytes: &memoryBytes, DiskBytes: &diskBytes})
+func (ms *MetricSender) SendContainerMetric(applicationId string, instanceIndex int32, cpuPercentage float64, memoryBytes uint64, diskBytes uint64, cpuPercentageWeighted float64) error {
+	return ms.eventEmitter.Emit(&events.ContainerMetric{ApplicationId: &applicationId, InstanceIndex: &instanceIndex, CpuPercentage: &cpuPercentage, MemoryBytes: &memoryBytes, DiskBytes: &diskBytes, CpuPercentageWeighted: &cpuPercentageWeighted})
 }
 
 // Value creates a value metric that can be manipulated via cascading calls
@@ -99,18 +99,19 @@ func (ms *MetricSender) Value(name string, value float64, unit string) ValueChai
 
 // ContainerMetric creates a container metric that can be manipulated via
 // cascading calls and then sent.
-func (ms *MetricSender) ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64) ContainerMetricChainer {
+func (ms *MetricSender) ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64, cpuWeighted float64) ContainerMetricChainer {
 	chainer := containerMetricChainer{}
 	chainer.emitter = ms.eventEmitter
 	chainer.envelope = &events.Envelope{
 		Origin:    proto.String(ms.eventEmitter.Origin()),
 		EventType: events.Envelope_ContainerMetric.Enum(),
 		ContainerMetric: &events.ContainerMetric{
-			ApplicationId: proto.String(appID),
-			InstanceIndex: proto.Int32(instance),
-			CpuPercentage: proto.Float64(cpu),
-			MemoryBytes:   proto.Uint64(mem),
-			DiskBytes:     proto.Uint64(disk),
+			ApplicationId:         proto.String(appID),
+			InstanceIndex:         proto.Int32(instance),
+			CpuPercentage:         proto.Float64(cpu),
+			MemoryBytes:           proto.Uint64(mem),
+			DiskBytes:             proto.Uint64(disk),
+			CpuPercentageWeighted: proto.Float64(cpuWeighted),
 		},
 	}
 	return chainer
