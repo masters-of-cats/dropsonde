@@ -30,6 +30,11 @@ type ContainerMetricChainer interface {
 	Send() error
 }
 
+type ContainerCPUUsageChainer interface {
+	SetTag(key, value string) ContainerCPUUsageChainer
+	Send() error
+}
+
 type CounterChainer interface {
 	SetTag(key, value string) CounterChainer
 	Increment() error
@@ -116,6 +121,24 @@ func (ms *MetricSender) ContainerMetric(appID string, instance int32, cpu float6
 	return chainer
 }
 
+// ContainerCPUUsage creates a container CPU usage metric that can be manipulated via cascading calls and then sent.
+func (ms *MetricSender) ContainerCPUUsage(appID string, instance int32, absoluteUsage, absoluteEntitlement, containerAge uint64) ContainerCPUUsageChainer {
+	chainer := containerCPUUsageChainer{}
+	chainer.emitter = ms.eventEmitter
+	chainer.envelope = &events.Envelope{
+		Origin:    proto.String(ms.eventEmitter.Origin()),
+		EventType: events.Envelope_ContainerCPUUsage.Enum(),
+		ContainerCPUUsage: &events.ContainerCPUUsage{
+			ApplicationId:       proto.String(appID),
+			InstanceIndex:       proto.Int32(instance),
+			AbsoluteUsage:       proto.Uint64(absoluteUsage),
+			AbsoluteEntitlement: proto.Uint64(absoluteEntitlement),
+			ContainerAge:        proto.Uint64(containerAge),
+		},
+	}
+	return chainer
+}
+
 // Counter creates a counter event that can be manipulated via cascading calls
 // and then sent via Increment or Add.
 func (ms *MetricSender) Counter(name string) CounterChainer {
@@ -183,6 +206,15 @@ type containerMetricChainer struct {
 }
 
 func (c containerMetricChainer) SetTag(key, value string) ContainerMetricChainer {
+	c.chainer = c.chainer.SetTag(key, value)
+	return c
+}
+
+type containerCPUUsageChainer struct {
+	chainer
+}
+
+func (c containerCPUUsageChainer) SetTag(key, value string) ContainerCPUUsageChainer {
 	c.chainer = c.chainer.SetTag(key, value)
 	return c
 }

@@ -37,6 +37,15 @@ type mockMetricSender struct {
 	ContainerMetricOutput struct {
 		Ret0 chan metric_sender.ContainerMetricChainer
 	}
+	ContainerCPUUsageCalled chan bool
+	ContainerCPUUsageInput  struct {
+		AppID                                            chan string
+		Instance                                         chan int32
+		AbsoluteUsage, AbsoluteEntitlement, ContainerAge chan uint64
+	}
+	ContainerCPUUsageOutput struct {
+		Ret0 chan metric_sender.ContainerCPUUsageChainer
+	}
 	CounterCalled chan bool
 	CounterInput  struct {
 		Name chan string
@@ -98,6 +107,13 @@ func newMockMetricSender() *mockMetricSender {
 	m.ContainerMetricInput.Mem = make(chan uint64, 100)
 	m.ContainerMetricInput.Disk = make(chan uint64, 100)
 	m.ContainerMetricOutput.Ret0 = make(chan metric_sender.ContainerMetricChainer, 100)
+	m.ContainerCPUUsageCalled = make(chan bool, 100)
+	m.ContainerCPUUsageInput.AppID = make(chan string, 100)
+	m.ContainerCPUUsageInput.Instance = make(chan int32, 100)
+	m.ContainerCPUUsageInput.AbsoluteUsage = make(chan uint64, 100)
+	m.ContainerCPUUsageInput.AbsoluteEntitlement = make(chan uint64, 100)
+	m.ContainerCPUUsageInput.ContainerAge = make(chan uint64, 100)
+	m.ContainerCPUUsageOutput.Ret0 = make(chan metric_sender.ContainerCPUUsageChainer, 100)
 	m.CounterCalled = make(chan bool, 100)
 	m.CounterInput.Name = make(chan string, 100)
 	m.CounterOutput.Ret0 = make(chan metric_sender.CounterChainer, 100)
@@ -143,6 +159,15 @@ func (m *mockMetricSender) ContainerMetric(appID string, instance int32, cpu flo
 	m.ContainerMetricInput.Disk <- disk
 	return <-m.ContainerMetricOutput.Ret0
 }
+func (m *mockMetricSender) ContainerCPUUsage(appID string, instance int32, absoluteUsage, absoluteEntitlement, containerAge uint64) metric_sender.ContainerCPUUsageChainer {
+	m.ContainerCPUUsageCalled <- true
+	m.ContainerCPUUsageInput.AppID <- appID
+	m.ContainerCPUUsageInput.Instance <- instance
+	m.ContainerCPUUsageInput.AbsoluteUsage <- absoluteUsage
+	m.ContainerCPUUsageInput.AbsoluteEntitlement <- absoluteEntitlement
+	m.ContainerCPUUsageInput.ContainerAge <- containerAge
+	return <-m.ContainerCPUUsageOutput.Ret0
+}
 func (m *mockMetricSender) Counter(name string) metric_sender.CounterChainer {
 	m.CounterCalled <- true
 	m.CounterInput.Name <- name
@@ -174,4 +199,172 @@ func (m *mockMetricSender) SendContainerMetric(applicationId string, instanceInd
 	m.SendContainerMetricInput.MemoryBytes <- memoryBytes
 	m.SendContainerMetricInput.DiskBytes <- diskBytes
 	return <-m.SendContainerMetricOutput.Ret0
+}
+
+type mockValueChainer struct {
+	SetTagCalled chan bool
+	SetTagInput  struct {
+		Key, Value chan string
+	}
+	SetTagOutput struct {
+		Ret0 chan metric_sender.ValueChainer
+	}
+	SendCalled chan bool
+	SendOutput struct {
+		Ret0 chan error
+	}
+}
+
+func newMockValueChainer() *mockValueChainer {
+	m := &mockValueChainer{}
+	m.SetTagCalled = make(chan bool, 100)
+	m.SetTagInput.Key = make(chan string, 100)
+	m.SetTagInput.Value = make(chan string, 100)
+	m.SetTagOutput.Ret0 = make(chan metric_sender.ValueChainer, 100)
+	m.SendCalled = make(chan bool, 100)
+	m.SendOutput.Ret0 = make(chan error, 100)
+	return m
+}
+func (m *mockValueChainer) SetTag(key, value string) metric_sender.ValueChainer {
+	m.SetTagCalled <- true
+	m.SetTagInput.Key <- key
+	m.SetTagInput.Value <- value
+	return <-m.SetTagOutput.Ret0
+}
+func (m *mockValueChainer) Send() error {
+	m.SendCalled <- true
+	return <-m.SendOutput.Ret0
+}
+
+type mockContainerMetricChainer struct {
+	SetTagCalled chan bool
+	SetTagInput  struct {
+		Key, Value chan string
+	}
+	SetTagOutput struct {
+		Ret0 chan metric_sender.ContainerMetricChainer
+	}
+	SendCalled chan bool
+	SendOutput struct {
+		Ret0 chan error
+	}
+}
+
+func newMockContainerMetricChainer() *mockContainerMetricChainer {
+	m := &mockContainerMetricChainer{}
+	m.SetTagCalled = make(chan bool, 100)
+	m.SetTagInput.Key = make(chan string, 100)
+	m.SetTagInput.Value = make(chan string, 100)
+	m.SetTagOutput.Ret0 = make(chan metric_sender.ContainerMetricChainer, 100)
+	m.SendCalled = make(chan bool, 100)
+	m.SendOutput.Ret0 = make(chan error, 100)
+	return m
+}
+func (m *mockContainerMetricChainer) SetTag(key, value string) metric_sender.ContainerMetricChainer {
+	m.SetTagCalled <- true
+	m.SetTagInput.Key <- key
+	m.SetTagInput.Value <- value
+	return <-m.SetTagOutput.Ret0
+}
+func (m *mockContainerMetricChainer) Send() error {
+	m.SendCalled <- true
+	return <-m.SendOutput.Ret0
+}
+
+type mockContainerCPUUsageChainer struct {
+	SetTagCalled chan bool
+	SetTagInput  struct {
+		Key, Value chan string
+	}
+	SetTagOutput struct {
+		Ret0 chan metric_sender.ContainerCPUUsageChainer
+	}
+	SendCalled chan bool
+	SendOutput struct {
+		Ret0 chan error
+	}
+}
+
+func newMockContainerCPUUsageChainer() *mockContainerCPUUsageChainer {
+	m := &mockContainerCPUUsageChainer{}
+	m.SetTagCalled = make(chan bool, 100)
+	m.SetTagInput.Key = make(chan string, 100)
+	m.SetTagInput.Value = make(chan string, 100)
+	m.SetTagOutput.Ret0 = make(chan metric_sender.ContainerCPUUsageChainer, 100)
+	m.SendCalled = make(chan bool, 100)
+	m.SendOutput.Ret0 = make(chan error, 100)
+	return m
+}
+func (m *mockContainerCPUUsageChainer) SetTag(key, value string) metric_sender.ContainerCPUUsageChainer {
+	m.SetTagCalled <- true
+	m.SetTagInput.Key <- key
+	m.SetTagInput.Value <- value
+	return <-m.SetTagOutput.Ret0
+}
+func (m *mockContainerCPUUsageChainer) Send() error {
+	m.SendCalled <- true
+	return <-m.SendOutput.Ret0
+}
+
+type mockCounterChainer struct {
+	SetTagCalled chan bool
+	SetTagInput  struct {
+		Key, Value chan string
+	}
+	SetTagOutput struct {
+		Ret0 chan metric_sender.CounterChainer
+	}
+	IncrementCalled chan bool
+	IncrementOutput struct {
+		Ret0 chan error
+	}
+	AddCalled chan bool
+	AddInput  struct {
+		Delta chan uint64
+	}
+	AddOutput struct {
+		Ret0 chan error
+	}
+}
+
+func newMockCounterChainer() *mockCounterChainer {
+	m := &mockCounterChainer{}
+	m.SetTagCalled = make(chan bool, 100)
+	m.SetTagInput.Key = make(chan string, 100)
+	m.SetTagInput.Value = make(chan string, 100)
+	m.SetTagOutput.Ret0 = make(chan metric_sender.CounterChainer, 100)
+	m.IncrementCalled = make(chan bool, 100)
+	m.IncrementOutput.Ret0 = make(chan error, 100)
+	m.AddCalled = make(chan bool, 100)
+	m.AddInput.Delta = make(chan uint64, 100)
+	m.AddOutput.Ret0 = make(chan error, 100)
+	return m
+}
+func (m *mockCounterChainer) SetTag(key, value string) metric_sender.CounterChainer {
+	m.SetTagCalled <- true
+	m.SetTagInput.Key <- key
+	m.SetTagInput.Value <- value
+	return <-m.SetTagOutput.Ret0
+}
+func (m *mockCounterChainer) Increment() error {
+	m.IncrementCalled <- true
+	return <-m.IncrementOutput.Ret0
+}
+func (m *mockCounterChainer) Add(delta uint64) error {
+	m.AddCalled <- true
+	m.AddInput.Delta <- delta
+	return <-m.AddOutput.Ret0
+}
+
+type mockEvent struct {
+	ProtoMessageCalled chan bool
+}
+
+func newMockEvent() *mockEvent {
+	m := &mockEvent{}
+	m.ProtoMessageCalled = make(chan bool, 100)
+	return m
+}
+func (m *mockEvent) ProtoMessage() {
+	m.ProtoMessageCalled <- true
 }

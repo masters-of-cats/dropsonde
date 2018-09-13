@@ -43,6 +43,15 @@ var _ = Describe("Metrics", func() {
 		))
 	})
 
+	It("delegates CPUUsage", func() {
+		metricSender.ContainerCPUUsageOutput.Ret0 <- nil
+		appGuid := "some_app_guid"
+		metrics.ContainerCPUUsage(appGuid, 1, 10, 20, 30)
+		Expect(metricSender.ContainerCPUUsageInput).To(BeCalled(
+			With(appGuid, int32(1), uint64(10), uint64(20), uint64(30)),
+		))
+	})
+
 	It("delegates Counter", func() {
 		metricSender.CounterOutput.Ret0 <- nil
 		metrics.Counter("requests")

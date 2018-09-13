@@ -131,4 +131,20 @@ var _ = Describe("HTTP event creation", func() {
 			Expect(containerMetric).To(Equal(expectedContainerMetric))
 		})
 	})
+
+	Describe("NewContainerCPUUsage", func() {
+		It("should set the appropriate fields", func() {
+			expectedContainerMetric := &events.ContainerCPUUsage{
+				ApplicationId:       proto.String("some_app_id"),
+				InstanceIndex:       proto.Int32(7),
+				AbsoluteUsage:       proto.Uint64(10),
+				AbsoluteEntitlement: proto.Uint64(20),
+				ContainerAge:        proto.Uint64(30),
+			}
+
+			containerMetric := factories.NewContainerCPUUsage("some_app_id", 7, 10, 20, 30)
+
+			Expect(containerMetric).To(Equal(expectedContainerMetric))
+		})
+	})
 })

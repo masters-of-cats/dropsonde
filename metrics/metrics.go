@@ -37,6 +37,7 @@ type MetricSender interface {
 	// new chanining functions
 	Value(name string, value float64, unit string) metric_sender.ValueChainer
 	ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64) metric_sender.ContainerMetricChainer
+	ContainerCPUUsage(appID string, instance int32, absoluteUsage, absoluteEntitlement, containerAge uint64) metric_sender.ContainerCPUUsageChainer
 	Counter(name string) metric_sender.CounterChainer
 
 	// legacy functions
@@ -150,6 +151,15 @@ func ContainerMetric(appID string, instance int32, cpu float64, mem, disk uint64
 		return nil
 	}
 	return metricSender.ContainerMetric(appID, instance, cpu, mem, disk)
+}
+
+// ContainerCPUUsage creates a cpu usage metric that can be manipulated via
+// cascading calls and then sent.
+func ContainerCPUUsage(appID string, instance int32, absoluteUsage, absoluteEntitlement, containerAge uint64) metric_sender.ContainerCPUUsageChainer {
+	if metricSender == nil {
+		return nil
+	}
+	return metricSender.ContainerCPUUsage(appID, instance, absoluteUsage, absoluteEntitlement, containerAge)
 }
 
 // Counter creates a counter event that can be manipulated via cascading calls

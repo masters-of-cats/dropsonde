@@ -100,6 +100,16 @@ func NewContainerMetric(applicationId string, instanceIndex int32, cpuPercentage
 	}
 }
 
+func NewContainerCPUUsage(applicationId string, instanceIndex int32, absoluteUsage, absoluteEntitlement, containerAge uint64) *events.ContainerCPUUsage {
+	return &events.ContainerCPUUsage{
+		ApplicationId:       &applicationId,
+		InstanceIndex:       &instanceIndex,
+		AbsoluteUsage:       &absoluteUsage,
+		AbsoluteEntitlement: &absoluteEntitlement,
+		ContainerAge:        &containerAge,
+	}
+}
+
 func parseXForwarded(forwarded string) []string {
 	addrs := strings.Split(forwarded, ",")
 	for i, addr := range addrs {

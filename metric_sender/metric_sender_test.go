@@ -213,6 +213,103 @@ var _ = Describe("MetricSender", func() {
 		})
 	})
 
+	Describe("ContainerCPUUsage", func() {
+		It("sets the required properties", func() {
+			err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).
+				Send()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+			metric := emitter.GetEnvelopes()[0].ContainerCPUUsage
+
+			Expect(metric.GetApplicationId()).To(Equal("test-app-id"))
+			Expect(metric.GetInstanceIndex()).To(BeEquivalentTo(1234))
+			Expect(metric.GetAbsoluteUsage()).To(Equal(uint64(10)))
+			Expect(metric.GetAbsoluteEntitlement()).To(Equal(uint64(20)))
+			Expect(metric.GetContainerAge()).To(Equal(uint64(30)))
+		})
+
+		Context("tags", func() {
+			It("can set tags", func() {
+				err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).
+					SetTag("baz", "qux").
+					Send()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+				envelope := emitter.GetEnvelopes()[0]
+
+				Expect(envelope.GetTags()).To(HaveKeyWithValue("baz", "qux"))
+			})
+
+			It("doesn't allow tag keys over 256 characters", func() {
+				tooLong := strings.Repeat("x", 257)
+				err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).SetTag(tooLong, "bar").Send()
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("doesn't allow tag values over 256 characters", func() {
+				tooLong := strings.Repeat("x", 257)
+				err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).SetTag("foo", tooLong).Send()
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("counts multi-byte unicode characters as single characters when checking key length", func() {
+				justRight := strings.Repeat("x", 255) + "Ω"
+				err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).SetTag(justRight, "qux").Send()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+				envelope := emitter.GetEnvelopes()[0]
+
+				Expect(envelope.GetTags()).To(HaveKeyWithValue(justRight, "qux"))
+			})
+
+			It("counts multi-byte unicode characters as single characters when checking value length", func() {
+				justRight := strings.Repeat("x", 255) + "Ω"
+				err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).SetTag("baz", justRight).Send()
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+				envelope := emitter.GetEnvelopes()[0]
+
+				Expect(envelope.GetTags()).To(HaveKeyWithValue("baz", justRight))
+			})
+
+			It("doesn't allow more than 10 tags", func() {
+				c := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30)
+				for i := 0; i < 11; i++ {
+					c = c.SetTag(fmt.Sprintf("key-%d", i), "value")
+				}
+				err := c.Send()
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		It("sets origin", func() {
+			err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).
+				Send()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+			envelope := emitter.GetEnvelopes()[0]
+
+			Expect(envelope.GetOrigin()).To(Equal("test-origin"))
+		})
+
+		It("sets the timestamp", func() {
+			err := sender.ContainerCPUUsage("test-app-id", 1234, 10, 20, 30).
+				Send()
+			now := time.Now().UnixNano()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(emitter.GetEnvelopes()).To(HaveLen(1))
+			envelope := emitter.GetEnvelopes()[0]
+
+			Expect(envelope.GetTimestamp()).To(BeNumerically("~", now, time.Second))
+		})
+	})
+
 	Describe("Counter", func() {
 		It("sets the required properties", func() {
 			err := sender.Counter("requests").Increment()
